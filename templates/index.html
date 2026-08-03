@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Web Application Reconnaissance Tool</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="container">
+  <header class="app-header">
+    <h1>🕵️ Web Application Reconnaissance Tool</h1>
+    <p>Collect publicly available OSINT about a target web application: WHOIS, DNS, subdomains, TLS, headers, robots.txt/sitemap, tech stack, and more.</p>
+  </header>
+
+  <div class="notice">
+    ⚠️ Only scan targets you own or are explicitly authorized to assess. Port scanning and subdomain
+    brute-forcing are disabled by default and generate real network traffic to the target.
+  </div>
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      {% for m in messages %}<div class="flash">{{ m }}</div>{% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form class="scan-form" method="post" action="{{ url_for('index') }}">
+    <div class="row">
+      <input type="text" name="target" placeholder="https://example.com" required
+             value="{{ result.target if result else '' }}">
+      <button type="submit">Run Recon</button>
+    </div>
+    <div class="options">
+      <label><input type="checkbox" name="enable_subdomains" checked> Subdomain enumeration</label>
+      <label><input type="checkbox" name="enable_screenshot" checked> Screenshot capture</label>
+      <label><input type="checkbox" name="enable_port_scan"> Open port scan (opt-in, generates extra traffic)</label>
+    </div>
+  </form>
+
+  {% if result %}
+    <div class="actions">
+      <a href="{{ url_for('download_html', report_id=report_id) }}">⬇ Download HTML Report</a>
+      <a href="{{ url_for('download_pdf', report_id=report_id) }}">⬇ Download PDF Report</a>
+    </div>
+
+    {% if screenshot_rel %}
+      <section class="module screenshot-preview">
+        <h2>Screenshot</h2>
+        <img src="{{ url_for('static', filename=screenshot_rel) }}" alt="Target screenshot">
+      </section>
+    {% endif %}
+
+    {{ body_html | safe }}
+  {% endif %}
+</div>
+</body>
+</html>
