@@ -6,6 +6,7 @@ venv/
 .env
 reports/*.html
 reports/*.pdf
+reports/history.json
 !reports/.gitkeep
 instance/
 .DS_Store

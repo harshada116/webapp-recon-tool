@@ -13,16 +13,25 @@
 3. Click **Run Recon**. Each module runs independently; if one fails
    (e.g. a WHOIS rate limit, a DNS timeout) its section shows the error
    while the rest of the report is still populated normally.
-4. Review the report sections: WHOIS, DNS records, subdomains, SSL/TLS
+4. Read the **site report dashboard** at the top: at-a-glance tiles
+   (hosting org, IP, certificate health, TLS version, web server, open
+   ports), then Background / Network / SSL / Crawling panels, the
+   technology breakdown, passive observations, and hosting history.
+   **Open site report dashboard** gives the same summary on its own page
+   (`/dashboard/<report_id>`), which is the view to screenshot or print.
+5. Review the full module output below it: WHOIS, DNS records, subdomains, SSL/TLS
    certificate, HTTP headers, robots.txt, sitemap.xml, detected
    technologies, screenshot, and (if enabled) open ports.
-5. Use **Download HTML Report** / **Download PDF Report** to save the
+6. Use **Download HTML Report** / **Download PDF Report** to save the
    full findings.
 
 ## What each section tells you
 
 | Section | What to look for |
 |---|---|
+| Dashboard → Observations | Passive flags only (expiring cert, no CAA, missing security headers, version disclosure, interesting robots.txt paths, sensitive open ports). Nothing here is verified against the target — treat each as a lead to confirm, not a finding to report. |
+| Dashboard → Hosting history | Only what *this tool* has seen. It starts empty; re-scan a host over time and any change of IP, netblock owner, web server or certificate issuer becomes a new row. Useful for spotting a migration between providers or an unexpected CA change. |
+| IP & Netblock | Who actually owns the address space (often a CDN or cloud provider rather than the organisation), the hosting country, and the abuse contact to use for responsible disclosure. |
 | WHOIS | Registrar, creation/expiry dates (a domain expiring soon is worth flagging), name servers, registrant org. |
 | DNS | Unexpected `A`/`MX` records, missing `CAA` (means any CA can issue a cert for the domain), stray `TXT` records leaking SPF/verification tokens. |
 | Subdomains | Forgotten staging/dev/admin subdomains — often the weakest link in an otherwise hardened main site. |

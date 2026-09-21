@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <title>Web Application Reconnaissance Tool</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>{{ dashboard_css | safe }}</style>
 </head>
 <body>
 <div class="container">
@@ -40,7 +41,10 @@
     <div class="actions">
       <a href="{{ url_for('download_html', report_id=report_id) }}">⬇ Download HTML Report</a>
       <a href="{{ url_for('download_pdf', report_id=report_id) }}">⬇ Download PDF Report</a>
+      <a href="{{ url_for('dashboard_view', report_id=report_id) }}">🔎 Open site report dashboard</a>
     </div>
+
+    {{ dashboard_html | safe }}
 
     {% if screenshot_rel %}
       <section class="module screenshot-preview">
@@ -49,6 +53,7 @@
       </section>
     {% endif %}
 
+    <h2 class="detail-heading">Full module output</h2>
     {{ body_html | safe }}
   {% endif %}
 </div>

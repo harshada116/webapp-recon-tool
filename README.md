@@ -10,9 +10,17 @@ target web application:
 - HTTP response header collection
 - robots.txt analysis
 - sitemap.xml discovery
+- IP/netblock intelligence (reverse DNS + RDAP netblock owner, hosting country)
 - Technology fingerprinting (web server, framework, CMS, CDN, etc.)
 - Screenshot capture of the target website
 - Open port scanning (optional, off by default)
+
+Results are summarized in a **site-report dashboard** (in the style of a
+Netcraft site report): at-a-glance tiles, grouped Background / Network /
+SSL / Crawling panels, a technology breakdown by category, passive
+observations, and a hosting-history table built from repeat scans. The
+full per-module output stays below the summary, and both are included in
+the exported report.
 
 Generates a professional report in **HTML** and **PDF** formats.
 
@@ -30,7 +38,9 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open `http://127.0.0.1:5001`, enter a target, click **Run Recon**.
+Open `http://127.0.0.1:5001`, enter a target, click **Run Recon**. The
+dashboard renders first; **Open site report dashboard** (or
+`/dashboard/<report_id>`) shows it on its own, without the raw module dumps.
 
 See [`docs/SETUP.md`](docs/SETUP.md) for full install/deploy instructions,
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for design notes, and
@@ -50,6 +60,7 @@ webapp-recon-tool/
 ├── modules/              one module per recon technique
 │   ├── common.py          target normalization + SSRF guard
 │   ├── whois_lookup.py
+│   ├── ip_intel.py        reverse DNS + RDAP netblock owner
 │   ├── dns_enum.py
 │   ├── subdomain_enum.py
 │   ├── ssl_info.py
@@ -59,9 +70,12 @@ webapp-recon-tool/
 │   ├── screenshot.py      optional (Selenium + Chrome)
 │   └── port_scan.py       optional, off by default
 ├── recon.py               orchestrator (isolates per-module failures)
+├── dashboard.py           pure ReconResult → site-report summary
+├── history_store.py       JSON-backed hosting history across scans
 ├── report_generator.py    generic dict/list → HTML/PDF report rendering
+│                            + site-report dashboard rendering
 ├── app.py                  Flask web UI
-├── templates/, static/
+├── templates/, static/    index.html + dashboard.html
 ├── test_recon.py          unit tests (mocked, no network required)
 ├── Dockerfile
 ├── docker-compose.yml

@@ -18,6 +18,7 @@ from typing import Any, Dict, Optional
 from modules.common import Target, normalize_target, assert_public_host, InvalidTargetError
 from modules import (
     whois_lookup,
+    ip_intel,
     dns_enum,
     subdomain_enum,
     ssl_info,
@@ -78,6 +79,7 @@ def run_recon(
     )
 
     _run_module(result, "whois", whois_lookup.lookup, target.hostname)
+    _run_module(result, "ip_intel", ip_intel.lookup, target.hostname)
     _run_module(result, "dns", dns_enum.enumerate_records, target.hostname)
     if enable_subdomains:
         _run_module(result, "subdomains", subdomain_enum.enumerate_subdomains, target.hostname)

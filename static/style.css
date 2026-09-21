@@ -44,3 +44,8 @@ table.grid th { background:#f9fafb; }
 ul.val-list { margin:4px 0; padding-left:18px; font-size:13px; }
 .error { color:#b91c1c; font-weight:600; }
 .screenshot-preview img { max-width:100%; border-radius:8px; border:1px solid var(--border); }
+
+/* Dashboard-specific rules live in report_generator.DASHBOARD_CSS so the web
+   UI, the downloadable HTML report and the PDF all share one definition.
+   Only the page-chrome bits that the standalone report does not need go here. */
+.detail-heading { font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:28px 0 12px; }

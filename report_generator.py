@@ -16,6 +16,7 @@ from recon import ReconResult
 
 MODULE_TITLES = {
     "whois": "WHOIS Lookup",
+    "ip_intel": "IP & Netblock Intelligence",
     "dns": "DNS Record Enumeration",
     "subdomains": "Subdomain Enumeration",
     "ssl": "SSL/TLS Certificate",
@@ -84,9 +85,170 @@ def _module_section(module_key: str, data: Any) -> str:
     """
 
 
-def render_body(result: ReconResult) -> str:
+# --------------------------------------------------------------- dashboard
+#
+# The dashboard CSS lives here rather than in static/style.css because the
+# same markup has to render in three places: the web UI, the downloadable
+# standalone HTML report, and the PDF. Keeping one copy avoids the three
+# drifting apart; the web UI pulls it in via DASHBOARD_CSS too.
+
+DASHBOARD_CSS = """
+.dash { margin-bottom: 20px; }
+.dash-head { display:flex; justify-content:space-between; align-items:baseline;
+  flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+.dash-head h2 { font-size:18px; margin:0; }
+.dash-head .dash-meta { font-size:12px; color:#6b7280; }
+.dash-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+  gap:10px; margin-bottom:18px; }
+.dash-card { background:#fff; border:1px solid #e5e7eb; border-left-width:4px;
+  border-radius:8px; padding:10px 12px; }
+.dash-card .c-label { font-size:11px; text-transform:uppercase; letter-spacing:.04em;
+  color:#6b7280; margin-bottom:4px; }
+.dash-card .c-value { font-size:16px; font-weight:600; word-break:break-word; }
+.dash-card .c-note { font-size:11.5px; color:#6b7280; margin-top:3px; word-break:break-word; }
+.dash-card.good { border-left-color:#16a34a; }
+.dash-card.warn { border-left-color:#d97706; }
+.dash-card.bad  { border-left-color:#dc2626; }
+.dash-card.neutral { border-left-color:#7c3aed; }
+.dash-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; }
+.dash-panel { background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:14px 16px; }
+.dash-panel h3 { font-size:13px; text-transform:uppercase; letter-spacing:.04em;
+  color:#374151; margin:0 0 10px; }
+.dash-panel table.kv th { width:170px; }
+.tech-group { margin-bottom:10px; }
+.tech-group .tech-cat { font-size:11.5px; color:#6b7280; margin-bottom:4px; }
+.chip { display:inline-block; background:#f3f4f6; border:1px solid #e5e7eb;
+  border-radius:999px; padding:2px 10px; font-size:12px; margin:0 4px 4px 0; }
+ul.findings { list-style:none; margin:0; padding:0; }
+ul.findings li { border-left:3px solid #e5e7eb; padding:4px 0 6px 10px; margin-bottom:8px; }
+ul.findings li.good { border-left-color:#16a34a; }
+ul.findings li.warn { border-left-color:#d97706; }
+ul.findings li.bad  { border-left-color:#dc2626; }
+ul.findings .f-title { font-size:13px; font-weight:600; }
+ul.findings .f-detail { font-size:12px; color:#4b5563; }
+.dash-note { font-size:11.5px; color:#6b7280; margin-top:6px; }
+@media print { .dash-cards, .dash-grid { break-inside: avoid; } }
+"""
+
+
+def _dash_cards(cards: list) -> str:
+    if not cards:
+        return ""
+    tiles = "".join(
+        f"""<div class="dash-card {_esc(c.get('tone', 'neutral'))}">
+              <div class="c-label">{_esc(c.get('label'))}</div>
+              <div class="c-value">{_esc(c.get('value'))}</div>
+              <div class="c-note">{_esc(c.get('note'))}</div>
+            </div>"""
+        for c in cards
+    )
+    return f'<div class="dash-cards">{tiles}</div>'
+
+
+def _dash_panel(title: str, body: str) -> str:
+    return f'<div class="dash-panel"><h3>{_esc(title)}</h3>{body}</div>'
+
+
+def _dash_rows(rows: list) -> str:
+    if not rows:
+        return "<p class='dash-note'>No data collected.</p>"
+    body = "".join(
+        f"<tr><th>{_esc(label)}</th><td>{_esc(value)}</td></tr>" for label, value in rows
+    )
+    return f"<table class='kv'>{body}</table>"
+
+
+def _dash_technology(groups: list) -> str:
+    if not groups:
+        return "<p class='dash-note'>No technologies fingerprinted.</p>"
+    out = []
+    for group in groups:
+        chips = "".join(f"<span class='chip'>{_esc(i)}</span>" for i in group.get("items", []))
+        out.append(
+            f"<div class='tech-group'><div class='tech-cat'>{_esc(group.get('category'))}</div>{chips}</div>"
+        )
+    return "".join(out)
+
+
+def _dash_findings(findings: list) -> str:
+    if not findings:
+        return ""
+    items = "".join(
+        f"""<li class="{_esc(f.get('severity', 'warn'))}">
+              <div class="f-title">{_esc(f.get('title'))}</div>
+              <div class="f-detail">{_esc(f.get('detail'))}</div>
+            </li>"""
+        for f in findings
+    )
+    return (
+        f"<ul class='findings'>{items}</ul>"
+        "<p class='dash-note'>Passive observations from collected data only &mdash; "
+        "nothing here has been verified against the target.</p>"
+    )
+
+
+def _dash_history(history: list) -> str:
+    if not history:
+        return (
+            "<p class='dash-note'>No previous scans recorded for this host yet. "
+            "Re-scan it later and any change of IP, netblock owner, web server or "
+            "certificate issuer will appear here.</p>"
+        )
+    rows = "".join(
+        "<tr>"
+        f"<td>{_esc(h.get('first_seen'))}</td>"
+        f"<td>{_esc(h.get('last_seen'))}</td>"
+        f"<td>{_esc(h.get('ip'))}</td>"
+        f"<td>{_esc(h.get('netblock_owner'))}</td>"
+        f"<td>{_esc(h.get('web_server'))}</td>"
+        f"<td>{_esc(h.get('tls_issuer'))}</td>"
+        "</tr>"
+        for h in history
+    )
+    return (
+        "<table class='grid'><thead><tr>"
+        "<th>First seen</th><th>Last seen</th><th>IP address</th>"
+        "<th>Netblock owner</th><th>Web server</th><th>Certificate issuer</th>"
+        "</tr></thead>"
+        f"<tbody>{rows}</tbody></table>"
+        "<p class='dash-note'>History reflects only scans run by this tool.</p>"
+    )
+
+
+def render_dashboard(dash: dict) -> str:
+    """Render the site-report dashboard: at-a-glance tiles, grouped panels,
+    technology chips, passive observations, and observed hosting history."""
+    if not dash:
+        return ""
+    if dash.get("error"):
+        return f"<p class='error'>Reconnaissance failed: {_esc(dash['error'])}</p>"
+
+    panels = [
+        _dash_panel(section["title"], _dash_rows(section["rows"]))
+        for section in dash.get("sections", [])
+    ]
+    panels.append(_dash_panel("Site technology", _dash_technology(dash.get("technology", []))))
+    panels.append(_dash_panel("Observations", _dash_findings(dash.get("findings", []))))
+    panels.append(_dash_panel("Hosting history (observed)", _dash_history(dash.get("history", []))))
+
+    return f"""
+    <section class="dash">
+      <div class="dash-head">
+        <h2>Site report &mdash; {_esc(dash.get('site'))}</h2>
+        <span class="dash-meta">Generated {_esc(dash.get('generated_at'))}</span>
+      </div>
+      {_dash_cards(dash.get('cards', []))}
+      <div class="dash-grid">{''.join(panels)}</div>
+    </section>
+    """
+
+
+def render_body(result: ReconResult, dash: dict | None = None) -> str:
     """Render just the report content (no <html>/<head> wrapper), reusable
-    both for the standalone report and for the inline web-UI preview."""
+    both for the standalone report and for the inline web-UI preview.
+
+    If `dash` is provided it is rendered above the per-module detail as a
+    site-report summary."""
     if result.error:
         return f"<p class='error'>Reconnaissance failed: {_esc(result.error)}</p>"
 
@@ -99,11 +261,13 @@ def render_body(result: ReconResult) -> str:
     </table>
     """
     sections = "".join(_module_section(key, val) for key, val in result.modules.items())
-    return meta + sections
+    summary = render_dashboard(dash) if dash else ""
+    detail_heading = "<h2 class='detail-heading'>Full module output</h2>" if summary else ""
+    return summary + detail_heading + meta + sections
 
 
-def render_html(result: ReconResult) -> str:
-    body = render_body(result)
+def render_html(result: ReconResult, dash: dict | None = None) -> str:
+    body = render_body(result, dash=dash)
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -123,7 +287,9 @@ def render_html(result: ReconResult) -> str:
   table.grid th {{ background:#f9fafb; }}
   ul.val-list {{ margin:4px 0; padding-left:18px; font-size:13px; }}
   .error {{ color:#b91c1c; font-weight:600; }}
+  .detail-heading {{ font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:#6b7280; margin:24px 0 10px; }}
   footer {{ margin-top: 24px; font-size:11px; color:#9ca3af; text-align:center; }}
+{DASHBOARD_CSS}
 </style>
 </head>
 <body>
@@ -136,7 +302,7 @@ def render_html(result: ReconResult) -> str:
 </html>"""
 
 
-def render_pdf(result: ReconResult, output_path: str) -> str:
+def render_pdf(result: ReconResult, output_path: str, dash: dict | None = None) -> str:
     try:
         from weasyprint import HTML
     except ImportError as exc:
@@ -146,5 +312,5 @@ def render_pdf(result: ReconResult, output_path: str) -> str:
         ) from exc
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    HTML(string=render_html(result)).write_pdf(output_path)
+    HTML(string=render_html(result, dash=dash)).write_pdf(output_path)
     return output_path

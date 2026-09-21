@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Site Report &mdash; Web Application Reconnaissance Tool</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>{{ dashboard_css | safe }}</style>
+</head>
+<body>
+<div class="container">
+  <header class="app-header">
+    <h1>🔎 Site Report</h1>
+    <p>Summary view of the last scan. Publicly observable information only.</p>
+  </header>
+
+  <div class="actions">
+    <a href="{{ url_for('index') }}">← New scan</a>
+    <a href="{{ url_for('download_html', report_id=report_id) }}">⬇ Download HTML Report</a>
+    <a href="{{ url_for('download_pdf', report_id=report_id) }}">⬇ Download PDF Report</a>
+  </div>
+
+  {{ dashboard_html | safe }}
+</div>
+</body>
+</html>
