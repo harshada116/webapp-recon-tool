@@ -136,6 +136,9 @@ def download_pdf(report_id):
     except ImportError as exc:
         flash(str(exc))
         return redirect(url_for("index"))
+    except Exception as exc:  # noqa: BLE001 - never 500 on a report build
+        flash(f"PDF generation failed: {exc}")
+        return redirect(url_for("index"))
     return send_file(path, as_attachment=True, download_name="recon-report.pdf")
 
 

@@ -2,10 +2,8 @@
 # Build from this directory:  docker build -t recon-tool .
 FROM python:3.12-slim
 
-# System deps for WeasyPrint (PDF export) + headless Chromium (screenshots)
+# System deps for headless Chromium (screenshots). PDF export is pure Python.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpango-1.0-0 libpangocairo-1.0-0 libcairo2 libgdk-pixbuf2.0-0 \
-    libffi-dev shared-mime-info \
     chromium chromium-driver \
     && rm -rf /var/lib/apt/lists/*
 

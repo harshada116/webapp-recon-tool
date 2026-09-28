@@ -22,7 +22,10 @@ observations, and a hosting-history table built from repeat scans. The
 full per-module output stays below the summary, and both are included in
 the exported report.
 
-Generates a professional report in **HTML** and **PDF** formats.
+Generates a professional report in **HTML** and **PDF** formats. PDF export is
+built in (pure-Python ReportLab): no Pango/Cairo or other system libraries to
+install, and it includes the dashboard summary, findings, hosting history,
+screenshot and full module output.
 
 > ⚠️ Use only against systems you own or are explicitly authorized to
 > assess. Subdomain brute-forcing and port scanning generate real traffic
@@ -72,7 +75,8 @@ webapp-recon-tool/
 ├── recon.py               orchestrator (isolates per-module failures)
 ├── dashboard.py           pure ReconResult → site-report summary
 ├── history_store.py       JSON-backed hosting history across scans
-├── report_generator.py    generic dict/list → HTML/PDF report rendering
+├── pdf_report.py          built-in PDF generator (ReportLab)
+├── report_generator.py    generic dict/list → HTML report rendering
 │                            + site-report dashboard rendering
 ├── app.py                  Flask web UI
 ├── templates/, static/    index.html + dashboard.html

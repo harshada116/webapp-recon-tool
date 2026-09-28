@@ -10,8 +10,8 @@ pyOpenSSL==24.2.1
 cryptography==43.0.0
 beautifulsoup4==4.12.3
 
-# PDF report export (requires system libs: Pango, Cairo, GDK-Pixbuf -- see docs/SETUP.md)
-weasyprint==62.3
+# Built-in PDF report export (pure Python, no system libraries needed)
+reportlab==4.2.2
 
 # Screenshot capture (requires a Chrome/Chromium browser -- see docs/SETUP.md)
 selenium==4.23.1

@@ -266,6 +266,38 @@ class TestDashboard(unittest.TestCase):
         self.assertIn("&lt;script&gt;", html_out)
 
 
+class TestPdfReport(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self._tmp, ignore_errors=True)
+
+    def test_pdf_is_generated(self):
+        result = _FakeResult(_sample_modules())
+        out = os.path.join(self._tmp, "r.pdf")
+        history = [{"first_seen": "2026-01-01", "last_seen": "2026-01-02", "ip": "1.2.3.4",
+                    "netblock_owner": "X", "web_server": "nginx", "tls_issuer": "CA"}]
+        dash = dashboard.build_dashboard(result, history=history)
+        report_generator.render_pdf(result, out, dash=dash)
+        with open(out, "rb") as fh:
+            self.assertEqual(fh.read(5), b"%PDF-")
+
+    def test_pdf_without_dashboard_and_hostile_data(self):
+        hostile = _sample_modules(
+            ip_intel={"primary_ip": "1.2.3.4", "netblock_owner": "<b>x</para> \u4e2d\u6587 \x00"},
+            http_headers={"headers": {"X": "A" * 5000}},
+        )
+        out = os.path.join(self._tmp, "h.pdf")
+        report_generator.render_pdf(_FakeResult(hostile), out)
+        self.assertTrue(os.path.getsize(out) > 500)
+
+    def test_pdf_for_failed_scan(self):
+        out = os.path.join(self._tmp, "e.pdf")
+        report_generator.render_pdf(_FakeResult({}, error="private address"), out)
+        self.assertTrue(os.path.exists(out))
+
+
 class TestHistoryStore(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.mkdtemp()

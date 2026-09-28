@@ -1,8 +1,8 @@
 """
 report_generator.py (Recon Tool)
 ---------------------------------
-Renders a ReconResult into a self-contained HTML report, and optionally a
-PDF via WeasyPrint. Generic helpers turn arbitrary dict/list module output
+Renders a ReconResult into a self-contained HTML report, and a PDF via the
+built-in pure-Python generator in pdf_report.py. Generic helpers turn arbitrary dict/list module output
 into readable tables without needing bespoke rendering code per module.
 """
 
@@ -303,14 +303,14 @@ def render_html(result: ReconResult, dash: dict | None = None) -> str:
 
 
 def render_pdf(result: ReconResult, output_path: str, dash: dict | None = None) -> str:
+    """Write the report as a PDF using the built-in ReportLab generator.
+
+    Pure Python: no Pango/Cairo/GTK system libraries are required.
+    """
     try:
-        from weasyprint import HTML
+        import pdf_report
     except ImportError as exc:
         raise ImportError(
-            "PDF export requires WeasyPrint and its system dependencies "
-            "(Pango, Cairo, GDK-Pixbuf). Install via 'pip install weasyprint'."
+            "PDF export requires ReportLab. Install it with 'pip install reportlab'."
         ) from exc
-
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    HTML(string=render_html(result, dash=dash)).write_pdf(output_path)
-    return output_path
+    return pdf_report.build_pdf(result, dash, output_path)
